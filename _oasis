@@ -1,0 +1,26 @@
+# -*- conf -*-
+OASISFormat: 0.4
+Name:        zookicker
+Version:     0
+Synopsis:    Game about kicking animals
+Authors:     Julian Squires
+License:     GPL-3.0
+BuildTools:  ocamlbuild
+
+Executable "zookicker"
+  Install:      true
+  Path:         src
+  MainIs:       main.ml
+  BuildDepends: tsdl
+  CompiledObject: best
+  ByteOpt:      -w +a -warn-error A-4-29-44 -g
+
+Executable "gameplay_tests"
+  Install:      false
+  Path:         tests
+  MainIs:       gameplay_tests.ml
+  BuildDepends: testsimple
+
+Test unit
+  TestTools: prove, gameplay_tests
+  Command:   $prove -v $gameplay_tests

@@ -1,0 +1,4 @@
+PKG tsdl
+PKG testsimple
+S src
+S test

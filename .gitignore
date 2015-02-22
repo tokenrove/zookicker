@@ -1,3 +1,13 @@
+# emacs
+*~
+
+# oasis / ocamlbuild
+_build/
+setup.*
+*.byte
+*.native
+
+# ocaml
 *.annot
 *.cmo
 *.cma

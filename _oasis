@@ -15,12 +15,13 @@ Executable "zookicker"
   CompiledObject: best
   ByteOpt:      -w +a -warn-error A-4-29-44 -g
 
-Executable "gameplay_tests"
+Executable "board_tests"
   Install:      false
-  Path:         tests
-  MainIs:       gameplay_tests.ml
+  Path:         src
+  MainIs:       board_tests.ml
   BuildDepends: testsimple
+  ByteOpt:      -w -a
 
 Test unit
-  TestTools: prove, gameplay_tests
-  Command:   $prove -v $gameplay_tests
+  TestTools: prove, board_tests
+  Command:   $prove -v $board_tests

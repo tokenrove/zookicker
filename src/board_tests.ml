@@ -50,6 +50,15 @@ let board_created_without_player_is_not_valid () =
      | Some _ -> false | None -> true)
     "Board created without player is not valid"
 
+let board_created_with_too_many_players_is_not_valid () =
+  ok (match create "
+@..@
+11.2
+.2@.
+" with
+     | Some _ -> false | None -> true)
+    "Board created with too many players is not valid"
+
 (* Not sure if this should be valid or not. *)
 let board_created_with_no_beasts_is_complete () =
   is (match create "
@@ -175,129 +184,77 @@ let player_wraps_around_world direction =
  *     "Player takes time to complete move"
  *)
 
+let compare_boards initial expected fn msg =
+  is (match (create initial) with
+      | Some it ->
+        fn it;
+        Some (String.trim (dump_ascii it))
+      | None -> None)
+    (Some (String.trim expected))
+    msg
+
 let kicking_one_beast_unobstructed_stops_at_obstacle () =
-  is (match create "@1..*1" with
-     | Some it ->
-       let (x,y) = locate_player it in
-       move Right it;
-       kick it;
-       update_until_unchanged it;
-       move Right it;
-       update_until_unchanged it;
-       move Right it;
-       update_until_unchanged it;
-       move Right it;
-       update_until_unchanged it;
-       let (x',y') = (locate_player it) in
-       Some (x'-x, y'-y)
-     | None -> None)
-    (Some (2,0))
-    ("Kicking one beast unobstructed stops at obstacle")
+  compare_boards
+    "@1..*1"
+    "@..1*1"
+    (fun it -> move Right it; kick it)
+    "Kicking one beast unobstructed stops at obstacle"
 
 let kicked_beast_with_no_obstruction_wraps_til_player () =
-  is (match create "
+  compare_boards
+    "
 .....1
-.1@..." with
-      | Some it ->
-        let (x,y) = locate_player it in
-        move Left it;
-        kick it;
-        update_until_unchanged it;
-        move Right it;
-        update_until_unchanged it;
-        let (x',y') = (locate_player it) in
-        Some (x'-x, y'-y)
-      | None -> None)
-    (Some (0,0))
-    ("Kicking beast with no obstruction wraps til player")
+.1@..."
+    "
+.....1
+..@1.."
+    (fun it -> move Left it; kick it)
+    "Kicking beast with no obstruction wraps til player"
 
 let kicking_two_beasts_causes_second_to_move_til_obstacle () =
-  is (match create ".@11.." with
-      | Some it ->
-        let (x,y) = locate_player it in
-        move Right it;
-        kick it;
-        update_until_unchanged it;
-        move Left it;
-        update_until_unchanged it;
-        let (x',y') = (locate_player it) in
-        Some (x'-x, y'-y)
-      | None -> None)
-    (Some (1,0))
-    ("Kicking two beasts causes second to move til obstacle")
+  compare_boards
+    ".@11.."
+    "1@1..."
+    (fun it -> move Right it; kick it)
+    "Kicking two beasts causes second to move til obstacle"
 
 let kicking_beast_into_matching_beast_eliminates_it () =
-  is (match create "@1.1" with
-      | Some it ->
-        move Right it;
-        kick it;
-        update_until_unchanged it;
-        Some (is_complete it)
-      | None -> None)
-    (Some true)
-    ("Kicking beast into matching beast eliminates it")
+  compare_boards "@1.1" "@..."
+    (fun it -> move Right it; kick it)
+    "Kicking beast into matching beast eliminates it"
 
 let kicking_beast_through_beast_into_matching_beast_eliminates_one_pair () =
-  is (match create "@11.11" with
-      | Some it ->
-        move Right it;
-        kick it;
-        update_until_unchanged it;
-        Some (pairs_remaining it)
-      | None -> None)
-    (Some 1)
-    ("Kicking beast through beast into matching beast eliminates one pair")
+  compare_boards "@11.11" "@1...1"
+    (fun it -> move Right it; kick it)
+    "Kicking beast through beast into matching beast eliminates one pair"
 
 let cannot_kick_beast_through_solid_object () =
-  is (match create "@*1..1" with
-      | Some it ->
-        move Right it;
-        kick it;
-        update_until_unchanged it;
-        Some (is_complete it)
-      | None -> None)
-    (Some false)
-    ("Cannot kick beast through solid object")
+  compare_boards "@*1..1" "@*1..1"
+    (fun it -> move Right it; kick it)
+    "Cannot kick beast through solid object"
 
 let kicking_three_beasts_has_no_effect () =
-  is (match create "@111.1" with
-      | Some it ->
-        move Right it;
-        kick it;
-        update_until_unchanged it;
-        Some (pairs_remaining it)
-      | None -> None)
-    (Some 2)
-    ("Kicking three beasts has no effect")
+  compare_boards "@111.1" "@111.1"
+    (fun it -> move Right it; kick it)
+    "Kicking three beasts has no effect"
 
 let kicking_two_beasts_obstructed_has_no_effect () =
-  is (match create "@11*" with
-      | Some it ->
-        move Right it;
-        kick it;
-        update_until_unchanged it;
-        Some (pairs_remaining it)
-      | None -> None)
-    (Some 1)
-    ("Kicking two beasts obstructed has no effect")
+  compare_boards "@11*" "@11*"
+    (fun it -> move Right it; kick it)
+    "Kicking two beasts obstructed has no effect"
 
 let kicking_one_beast_obstructed_has_no_effect () =
-  is (match create "@1*.1" with
-      | Some it ->
-        move Right it;
-        kick it;
-        update_until_unchanged it;
-        Some (pairs_remaining it)
-      | None -> None)
-    (Some 1)
-    ("Kicking one beast obstructed has no effect")
+  compare_boards "@1*.1" "@1*.1"
+    (fun it -> move Right it; kick it)
+    "Kicking one beast obstructed has no effect"
 
   let () =
-  plan 0;
+  plan 30;
   board_created_from_tricky_kick_level_1_reports_correct_number_of_pairs ();
   board_created_reports_correct_number_of_pairs ();
   board_created_with_odd_number_of_beasts_is_not_valid ();
   board_created_without_player_is_not_valid ();
+  board_created_with_too_many_players_is_not_valid ();
   (* board_created_with_no_beasts_is_not_valid (); *)
   board_created_with_no_beasts_is_complete ();
   let directions = [Up; Down; Left; Right] in

@@ -1,14 +1,7 @@
 type direction = Up | Down | Left | Right
 
-type beast =
+type body =
   {
-    kind: int;
-    position: float*float;
-    velocity: float*float;
-  }
-type player =
-  {
-    facing: direction;
     position: float*float;
     velocity: float*float;
   }
@@ -16,8 +9,8 @@ type player =
 type tile =
   | Floor
   | Solid of int
-  | Beast of beast
-  | Player of player
+  | Beast of int*body
+  | Player of direction*body
 
 type board = tile array
 
@@ -25,6 +18,7 @@ type t =
   {
     width : int;
     height : int;
+    mutable player_pos : int*int;
     mutable current : board;
     mutable spare : board;
   }
@@ -63,28 +57,40 @@ let create s =
     let board = Array.make (width*height) Floor in
     let tileify = function
       | '.' -> Floor
-      | '@' -> Player {facing=Down;
-                       position=(0.,0.);
-                       velocity=(0.,0.)}
-      | '1'..'9' as c -> Beast {kind=(Char.code c)-(Char.code '0');
-                                position=(0.,0.);
-                                velocity=(0.,0.)}
+      | '@' -> Player (Down, {position=(0.,0.); velocity=(0.,0.)})
+      | '1'..'9' as c -> Beast ((Char.code c)-(Char.code '0'),
+                                {position=(0.,0.);
+                                 velocity=(0.,0.)})
       | c -> Solid (Char.code c)
     in
+    let player_pos = ref None in
     let p j line =
       for i = 0 to width-1 do
-        board.(i+j*width) <- tileify line.[i]
+        let tile = tileify line.[i] in
+        board.(i+j*width) <- tile;
+        match (tile, !player_pos) with
+        | (Player _, None) ->
+          player_pos := Some (i,j)
+        | (Player _, Some (x,y)) ->
+          failwith "Too many players"
+        | _ -> ();
       done
     in
-    List.iteri p lines;
-    Some {width; height; current = board; spare = Array.copy board}
+    try
+      List.iteri p lines;
+      match !player_pos with
+      | Some player_pos ->
+        Some {width; height; player_pos; current = board; spare = Array.copy board}
+      | None ->
+        failwith "No player"
+    with | Failure _ -> None
 
 let dump_ascii {width; height; current} =
   let char_of_tile = function
     | Floor -> '.'
     | Solid _ -> '*'
     | Player _ -> '@'
-    | Beast {kind} -> Char.chr ((Char.code '0')+kind)
+    | Beast (kind,_) -> Char.chr ((Char.code '0')+kind)
   in
   let b = Buffer.create ((width+1)*height) in
   for j = 0 to height-1 do
@@ -95,7 +101,7 @@ let dump_ascii {width; height; current} =
   done;
   Buffer.contents b
 
-let update_tile (i,j) future present =
+let update_tile dt (i,j) future present =
   false
 
 let update dt board =
@@ -103,19 +109,16 @@ let update dt board =
   let changed = ref false in
   for j = 0 to height-1 do
     for i = 0 to width-1 do
-      changed := (update_tile (i,j) spare current) || !changed
+      changed := (update_tile dt (i,j) spare current) || !changed
     done
   done;
   board.current <- spare;
   board.spare <- current;
   !changed
 
-let is_valid {current} =
-  true
-
-let pairs_remaining {current} =
+let pairs_remaining_internal current =
   let f (bits,count) tile = match tile with
-    | Beast {kind} ->
+    | Beast (kind, _) ->
       let b = 1 lsl kind in
       let bits' = bits lxor b in
       (bits',
@@ -125,15 +128,20 @@ let pairs_remaining {current} =
          count)
     | _ -> (bits,count)
   in
-  let (_,count) =
-    Array.fold_left f (0,0) current
-  in count
+  Array.fold_left f (0,0) current
+
+let is_valid {current} =
+  let (bits,_) = pairs_remaining_internal current in
+  0 = bits
+
+let pairs_remaining {current} =
+  let (_,count) = pairs_remaining_internal current in count
 
 let is_complete board =
   0 == pairs_remaining board
 
-let locate_player {width; height; current} =
-  (0,0)
+let locate_player {player_pos} =
+  player_pos
 
 let move direction board = ()
 let kick board = ()

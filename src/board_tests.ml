@@ -38,7 +38,7 @@ let board_created_with_odd_number_of_beasts_is_not_valid () =
 1..1
 .4..
 " with
-     | Some _ -> false | None -> true)
+     | Some it -> not (is_valid it) | None -> true)
     "Board created with odd number of beasts is not valid"
 
 let board_created_without_player_is_not_valid () =

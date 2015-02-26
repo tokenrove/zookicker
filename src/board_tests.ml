@@ -188,7 +188,7 @@ let player_takes_time_to_complete_move () =
 let compare_boards initial expected fn msg =
   is (match (create initial) with
       | Some it ->
-        fn it;
+        fn it; update_until_unchanged it;
         Some (String.trim (dump_ascii it))
       | None -> None)
     (Some (String.trim expected))

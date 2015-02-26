@@ -1,16 +1,21 @@
 type direction = Up | Down | Left | Right
 
+(* Physics in Tricky Kick is very simple.  A beast is either moving or
+   not. *)
+type velocity = Stationary
+              | Moving of direction
+
 type beast =
   {
     kind: int;
-    position: float*float;      (* relative to current tile *)
-    velocity: float*float;      (* in tiles/millisecond *)
+    offset: float; (* how far we are from the center of the current tile, in tiles *)
+    velocity: velocity;
   }
 
 type player =
   {
     facing: direction;
-    position: float*float;      (* relative to current tile *)
+    offset: float; (* how far we are from the center of the current tile, in tiles *)
   }
 
 type tile =
@@ -64,10 +69,10 @@ let create s =
     let board = Array.make (width*height) Floor in
     let tileify = function
       | '.' -> Floor
-      | '@' -> Player {facing=Down; position=(0.,0.)}
+      | '@' -> Player {facing=Down; offset=0.}
       | '1'..'9' as c -> Beast {kind=(Char.code c)-(Char.code '0');
-                                position=(0.,0.);
-                                velocity=(0.,0.)}
+                                offset=0.;
+                                velocity=Stationary}
       | c -> Solid (Char.code c)
     in
     let player_pos = ref None in
@@ -108,16 +113,54 @@ let dump_ascii {width; height; current} =
   done;
   Buffer.contents b
 
-let update_tile dt p present =
-  let sink v =
-    copysign (max (abs_float(v) -. dt) 0.) v in
-  let tile = present.(p) in
+let unit_delta_of_direction = function
+  | Left -> (-1,0)
+  | Right -> (1,0)
+  | Up -> (0,-1)
+  | Down -> (0,1)
+
+let get_adjacent_position {width; height;} direction (x,y) =
+  assert (x >= 0 && x < width && y >= 0 && y < height);
+  let (dx,dy) = unit_delta_of_direction direction in
+  (width+x+dx) mod width, (height+y+dy) mod height
+
+let score_points () =
+  Printf.printf "Unimplemented: score points\n";
+  flush stdout
+
+let update_tile dt i j ({width; height; current} as board) =
+  let sink v = copysign (max (abs_float(v) -. dt) 0.) v in
+  let integrate_velocity o = o -. dt in
+  let tile = current.(i+j*width) in
   match tile with
-  | Player {facing; position=(x,y)} ->
-    (* to update the player, we ease their position towards (0,0) *)
-    Player {facing; position=(sink x, sink y)}
-  | Beast _ -> tile
-  | Solid _ | Floor -> tile
+  | Player {facing; offset} ->
+    (* to update the player, we ease their position towards the center of the tile *)
+    current.(i+j*width) <- Player {facing; offset=(sink offset)};
+    false
+  | Beast ({kind=our_kind; offset; velocity=Moving direction} as beast) ->
+    (* apply velocity to position *)
+    let offset' = integrate_velocity offset in
+    if offset' > -1.0 then begin
+      current.(i+j*width) <- Beast {beast with offset=offset'};
+      true
+    end else begin
+      let (i',j') = get_adjacent_position board direction (i,j) in
+      let t' = current.(i'+j'*width) in
+      match t' with
+      | Floor ->
+        current.(i'+j'*width) <- Beast {beast with offset=1.0};
+        current.(i+j*width) <- Floor;
+        true
+      | Beast {kind=other_kind} when our_kind=other_kind ->
+        current.(i+j*width) <- Floor;
+        current.(i'+j'*width) <- Floor;
+        score_points ();
+        true
+      | Beast _ | Solid _ | Player _ ->
+        current.(i+j*width) <- Beast {beast with offset=0.; velocity=Stationary};
+        true
+    end
+  | Beast {velocity=Stationary} | Solid _ | Floor -> false
 
 let update dt board =
   let {width; height; current; spare} = board in
@@ -125,14 +168,11 @@ let update dt board =
   for j = 0 to height-1 do
     for i = 0 to width-1 do
       let p = i+j*width in
-      let t = update_tile dt p current in
-      if spare.(p) <> t then
+      let did_change = update_tile dt i j board in
+      if did_change then
         changed := true;
-      spare.(p) <- t
     done
   done;
-  board.current <- spare;
-  board.spare <- current;
   !changed
 
 let pairs_remaining_internal current =
@@ -162,34 +202,19 @@ let is_complete board =
 let locate_player {player_pos} =
   player_pos
 
-let unit_delta_of_direction = function
-  | Left -> (-1,0)
-  | Right -> (1,0)
-  | Up -> (0,-1)
-  | Down -> (0,1)
+let is_player_ready_to_move {offset} = abs_float(offset) < epsilon_float
 
-let get_adjacent_position {width; height;} direction (x,y) =
-  assert (x >= 0 && x < width && y >= 0 && y < height);
-  let (dx,dy) = unit_delta_of_direction direction in
-  (width+x+dx) mod width, (height+y+dy) mod height
-
-let is_player_ready_to_move {position=(dx,dy)} =
-   abs_float(dx) < epsilon_float &&
-   abs_float(dy) < epsilon_float
-
-let move direction ({player_pos=(x,y); width; current} as board) =
+let move facing ({player_pos=(x,y); width; current} as board) =
   let tile = current.(x+y*width) in
-  let (x',y') = get_adjacent_position board direction (x,y) in
+  let (x',y') = get_adjacent_position board facing (x,y) in
   match tile with
-  | Player ({facing} as player) ->
-    if is_player_ready_to_move player &&
-       current.(x'+y'*width) = Floor then begin
-      let (dx',dy') = unit_delta_of_direction direction in
-      current.(x'+y'*width) <- Player {facing=direction;
-                                       position=(float_of_int dx', float_of_int dy');};
-      current.(x+y*width) <- Floor;
-      board.player_pos <- (x',y')
-    end
+  | Player player ->
+    if is_player_ready_to_move player then
+      if current.(x'+y'*width) = Floor then begin
+        current.(x'+y'*width) <- Player {facing; offset=1.0};
+        current.(x+y*width) <- Floor;
+        board.player_pos <- (x',y')
+      end else current.(x+y*width) <- Player {player with facing}
   | _ -> failwith "I was told there would be a player at this position"
 
 (* if a kick is applied to an animal:
@@ -217,14 +242,10 @@ let with_ball (x,y) direction ({width; current} as board) fn =
   | Floor | Solid _ | Player _ -> ()
 
 let kick ({player_pos=(x,y); width; current} as board) =
-  let kick_speed = 0.1 in
   let tile = current.(x+y*width) in
   match tile with
   | Player ({facing} as player) ->
     if is_player_ready_to_move player then
       with_ball (x,y) facing board
-        (fun beast ->
-           let (dx,dy) = unit_delta_of_direction facing in
-           {beast with velocity = (kick_speed *. (float_of_int dx),
-                                   kick_speed *. (float_of_int dy))})
+        (fun beast -> {beast with velocity = Moving facing})
   | _ -> failwith "I was told there would be a player at this position"

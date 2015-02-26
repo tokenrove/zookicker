@@ -173,19 +173,16 @@ let get_adjacent_position {width; height;} direction (x,y) =
   let (dx,dy) = unit_delta_of_direction direction in
   (width+x+dx) mod width, (height+y+dy) mod height
 
+let is_player_ready_to_move {position=(dx,dy)} =
+   abs_float(dx) < epsilon_float &&
+   abs_float(dy) < epsilon_float
+
 let move direction ({player_pos=(x,y); width; current} as board) =
   let tile = current.(x+y*width) in
   let (x',y') = get_adjacent_position board direction (x,y) in
-  let char_of_tile = function
-    | Floor -> '.'
-    | Solid _ -> '*'
-    | Player _ -> '@'
-    | Beast {kind} -> Char.chr ((Char.code '0')+kind)
-  in
   match tile with
-  | Player {facing; position=(dx,dy)} ->
-    if abs_float(dx) < epsilon_float &&
-       abs_float(dy) < epsilon_float &&
+  | Player ({facing} as player) ->
+    if is_player_ready_to_move player &&
        current.(x'+y'*width) = Floor then begin
       let (dx',dy') = unit_delta_of_direction direction in
       current.(x'+y'*width) <- Player {facing=direction;
@@ -195,4 +192,39 @@ let move direction ({player_pos=(x,y); width; current} as board) =
     end
   | _ -> failwith "I was told there would be a player at this position"
 
-let kick board = ()
+(* if a kick is applied to an animal:
+  if the following square is empty, ball is this animal
+  if the following square is an animal and the square after that is
+    empty, ball is that animal
+  if there's a ball, it proceeds along movable squares
+  if it comes to rest at another animal of the same type, and it
+    travelled more than one square, both animals are removed
+*)
+let with_ball (x,y) direction ({width; current} as board) fn =
+  let (cx,cy) = get_adjacent_position board direction (x,y) in
+  let (nx,ny) = get_adjacent_position board direction (cx,cy) in
+  let tile = current.(cx+cy*width) in
+  match tile with
+  | Beast candidate ->
+    let tile = current.(nx+ny*width) in
+    begin
+      match tile with
+      | Beast neighbor ->
+        current.(nx+ny*width) <- Beast (fn neighbor)
+      | Floor | Solid _ | Player _ ->
+        current.(cx+cy*width) <- Beast (fn candidate)
+    end
+  | Floor | Solid _ | Player _ -> ()
+
+let kick ({player_pos=(x,y); width; current} as board) =
+  let kick_speed = 0.1 in
+  let tile = current.(x+y*width) in
+  match tile with
+  | Player ({facing} as player) ->
+    if is_player_ready_to_move player then
+      with_ball (x,y) facing board
+        (fun beast ->
+           let (dx,dy) = unit_delta_of_direction facing in
+           {beast with velocity = (kick_speed *. (float_of_int dx),
+                                   kick_speed *. (float_of_int dy))})
+  | _ -> failwith "I was told there would be a player at this position"

@@ -81,7 +81,7 @@ exception Perpetual_motion
 
 let update_until_unchanged board =
   let max_iterations = ref 100 in
-  while update (Time.of_int32 16l) board do
+  while update (Time.of_int32_ms 16l) board do
     decr max_iterations;
     if !max_iterations <= 0 then raise Perpetual_motion;
   done
@@ -169,20 +169,21 @@ let player_wraps_around_world direction =
     (Some 2)
     ("Player wraps around the world ("^(str_of_direction direction)^")")
 
-(*
- * let player_takes_time_to_complete_move () =
- *   is (match create "@." with
- *       | Some it ->
- *         let (x,_) = locate_player it in
- *         move Right it;
- *         let (x',_) = locate_player it in
- *         update (Time.of_int32 16l) it;
- *         let (x'',_) = locate_player it in
- *         Some (x = x', x <> x'')
- *       | None -> None)
- *     (Some (true, true))
- *     "Player takes time to complete move"
- *)
+let player_takes_time_to_complete_move () =
+  is (match create "@.." with
+      | Some it ->
+        move Right it;
+        ignore (update (Time.of_int32_ms 16l) it);
+        move Right it;
+        let s = dump_ascii it in
+        ignore (update (Time.of_int32_ms 1000l) it);
+        move Right it;
+        ignore (update (Time.of_int32_ms 16l) it);
+        let s' = dump_ascii it in
+        Some (String.trim s, String.trim s')
+      | None -> None)
+    (Some (".@.", "..@"))
+    "Player takes time to complete move"
 
 let compare_boards initial expected fn msg =
   is (match (create initial) with
@@ -249,7 +250,7 @@ let kicking_one_beast_obstructed_has_no_effect () =
     "Kicking one beast obstructed has no effect"
 
   let () =
-  plan 30;
+  plan 31;
   board_created_from_tricky_kick_level_1_reports_correct_number_of_pairs ();
   board_created_reports_correct_number_of_pairs ();
   board_created_with_odd_number_of_beasts_is_not_valid ();
@@ -262,7 +263,7 @@ let kicking_one_beast_obstructed_has_no_effect () =
   List.iter player_cannot_move_through_inanimate_objects directions;
   List.iter player_cannot_move_through_beasts directions;
   List.iter player_wraps_around_world directions;
-  (* player_takes_time_to_complete_move (); *)
+  player_takes_time_to_complete_move ();
   kicking_one_beast_unobstructed_stops_at_obstacle ();
   kicking_two_beasts_causes_second_to_move_til_obstacle ();
   kicked_beast_with_no_obstruction_wraps_til_player ();

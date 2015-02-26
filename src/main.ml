@@ -39,7 +39,7 @@ let timed_event_loop target_fps render_fn game_fn renderer initial_game_value =
        i wanted to avoid the chance that this would cons *)
     let (game', quit) =
       if dt < minimum_update_length then (game, false)
-      else game_fn input' (Time.of_int32 dt) game
+      else game_fn input' (Time.of_int32_ms dt) game
     in
 
     render_fn renderer game';

@@ -32,7 +32,6 @@ type t =
     height : int;
     mutable player_pos : int*int;
     mutable current : board;
-    mutable spare : board;
   }
 
 (* create a board from a crude ascii representation, for testing. *)
@@ -92,7 +91,7 @@ let create s =
       List.iteri p lines;
       match !player_pos with
       | Some player_pos ->
-        Some {width; height; player_pos; current = board; spare = Array.copy board}
+        Some {width; height; player_pos; current = board}
       | None ->
         failwith "No player"
     with | Failure _ -> None
@@ -163,13 +162,11 @@ let update_tile dt i j ({width; height; current} as board) =
   | Beast {velocity=Stationary} | Solid _ | Floor -> false
 
 let update dt board =
-  let {width; height; current; spare} = board in
+  let {width; height; current} = board in
   let changed = ref false in
   for j = 0 to height-1 do
     for i = 0 to width-1 do
-      let p = i+j*width in
-      let did_change = update_tile dt i j board in
-      if did_change then
+      if update_tile dt i j board then
         changed := true;
     done
   done;

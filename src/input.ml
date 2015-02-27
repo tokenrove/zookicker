@@ -23,8 +23,15 @@ open Tsdl
 let update e initial_state =
   let handle_key state v =
     let k = Sdl.Event.(get e keyboard_keycode) in
-    if k = Sdl.K.escape && v then state lor (mask_of_button Quit)
-    else state
+    let m = if k = Sdl.K.escape then (mask_of_button Quit)
+      else if k = Sdl.K.left then (mask_of_button Left)
+      else if k = Sdl.K.right then (mask_of_button Right)
+      else if k = Sdl.K.up then (mask_of_button Up)
+      else if k = Sdl.K.down then (mask_of_button Down)
+      else if k = Sdl.K.space then (mask_of_button Kick)
+      else 0
+    in
+    if v then state lor m else state land (lnot m)
   in
   let rec loop state =
     if Sdl.poll_event (Some e) then begin

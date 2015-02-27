@@ -128,8 +128,8 @@ let score_points () =
   flush stdout
 
 let update_tile dt i j ({width; height; current} as board) =
-  let sink v = copysign (max (abs_float(v) -. dt) 0.) v in
-  let integrate_velocity o = o -. dt in
+  let sink v = copysign (max (abs_float(v) -. (dt /. 750.)) 0.) v in
+  let integrate_velocity o = o -. (dt /. 350.) in
   let tile = current.(i+j*width) in
   match tile with
   | Player {facing; offset} ->
@@ -139,7 +139,7 @@ let update_tile dt i j ({width; height; current} as board) =
   | Beast ({kind=our_kind; offset; velocity=Moving direction} as beast) ->
     (* apply velocity to position *)
     let offset' = integrate_velocity offset in
-    if offset' > -1.0 then begin
+    if offset' > -0.5 then begin
       current.(i+j*width) <- Beast {beast with offset=offset'};
       true
     end else begin
@@ -147,7 +147,7 @@ let update_tile dt i j ({width; height; current} as board) =
       let t' = current.(i'+j'*width) in
       match t' with
       | Floor ->
-        current.(i'+j'*width) <- Beast {beast with offset=1.0};
+        current.(i'+j'*width) <- Beast {beast with offset=0.5};
         current.(i+j*width) <- Floor;
         true
       | Beast {kind=other_kind} when our_kind=other_kind ->
@@ -246,3 +246,54 @@ let kick ({player_pos=(x,y); width; current} as board) =
       with_ball (x,y) facing board
         (fun beast -> {beast with velocity = Moving facing})
   | _ -> failwith "I was told there would be a player at this position"
+
+
+(* I was thinking of abstracting the presentation of the board out a
+   bit, possibly by parameterizing this module by a "presenter" module.
+   For now, though, we'll keep things simple and concrete. *)
+open Tsdl
+
+let (>>=) o f =
+  match o with | `Error e -> failwith (Printf.sprintf "Error %s" e)
+               | `Ok a -> f a
+
+let render renderer {width; height; current} =
+  let tw = 32 and th = 32 in
+  ignore (Sdl.set_render_draw_color renderer 0 0 0 0xff);
+  ignore (Sdl.render_clear renderer);
+  ignore (Sdl.set_render_draw_color renderer 0 0xff 0 0xff);
+  ignore (Sdl.render_fill_rect renderer (Some (Sdl.Rect.create ~x:0 ~y:0 ~w:(tw*width) ~h:(th*height))));
+  for j = 0 to height-1 do
+    for i = 0 to width-1 do
+      let offset_to_coords direction offset =
+        match direction with
+        | Left -> (i*tw + (truncate (offset*.(float_of_int tw))), j*th)
+        | Right -> (i*tw - (truncate (offset*.(float_of_int tw))), j*th)
+        | Up -> (i*tw, j*th + (truncate (offset*.(float_of_int th))))
+        | Down -> (i*tw, j*th - (truncate (offset*.(float_of_int th))))
+      in
+
+      (* This is nasty, but super-temporary. *)
+      match current.(i+j*width) with
+      | Floor -> ()
+      | Solid _ ->
+        ignore (Sdl.set_render_draw_color renderer 0xff 0 0 0xff);
+        ignore (Sdl.render_fill_rect renderer (Some (Sdl.Rect.create ~x:(i*tw) ~y:(j*th) ~w:tw ~h:th)))
+      | Beast {kind; offset; velocity} ->
+        ignore (Sdl.set_render_draw_color renderer 0 255 0 255);
+        ignore (Sdl.render_fill_rect renderer (Some (Sdl.Rect.create ~x:(i*tw) ~y:(j*th) ~w:tw ~h:th)));
+        let v = kind * 25 in
+        ignore (Sdl.set_render_draw_color renderer v v v 255);
+        let (x,y) = offset_to_coords (match velocity with | Stationary -> Down | Moving d -> d) offset in
+        ignore (Sdl.render_fill_rect renderer (Some (Sdl.Rect.create ~x:(x + tw/8) ~y:(y + th/8) ~w:(tw-tw/4) ~h:(th-th/4))));
+        (* ignore (Sdl.render_fill_rect renderer (Some (Sdl.Rect.create ~x:(i*tw + tw/8) ~y:(j*th + th/8) ~w:(tw-tw/4) ~h:(th-th/4)))); *)
+
+      | Player {facing; offset} ->
+        ignore (Sdl.set_render_draw_color renderer 0 255 0 255);
+        ignore (Sdl.render_fill_rect renderer (Some (Sdl.Rect.create ~x:(i*tw) ~y:(j*th) ~w:tw ~h:th)));
+        ignore (Sdl.set_render_draw_color renderer 0 0 255 255);
+        let (x,y) = offset_to_coords facing offset in
+        ignore (Sdl.render_fill_rect renderer (Some (Sdl.Rect.create ~x:(x + tw/8) ~y:(y-th/4) ~w:(tw-tw/4) ~h:(th+th/8))));
+    done
+  done;
+  ignore (Sdl.render_present renderer)

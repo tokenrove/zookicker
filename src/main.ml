@@ -18,16 +18,19 @@ let with_sdl f =
       Sdl.destroy_window w;
       Sdl.quit ()) (fun () -> f w r)
 
-let render_fn renderer () =
-  Sdl.set_render_draw_color renderer 0 0 0 0xff >>= fun () ->
-  Sdl.render_clear renderer >>= fun () ->
-  Sdl.set_render_draw_color renderer 0xff 0xff 0xff 0xff >>= fun () ->
-  Sdl.render_fill_rect renderer (Some (Sdl.Rect.create ~x:10 ~y:10 ~w:42 ~h:42)) >>= fun () ->
-  Sdl.render_present renderer
-
-let game_fn input _ () =
-  ((), (Input.is_pressed Input.Quit input))
-
+let game_fn input old_input dt board =
+  let debounced i =
+    Input.is_pressed i input &&
+    not (Input.is_pressed i old_input)
+  in
+  List.iter (fun (d,i) -> if debounced i then Board.move d board)
+    [Board.Left,Input.Left;
+     Board.Right,Input.Right;
+     Board.Up,Input.Up;
+     Board.Down,Input.Down];
+  if debounced Input.Kick then Board.kick board;
+  Board.update dt board |> ignore;
+  (board, (Input.is_pressed Input.Quit input) || Board.is_complete board)
 
 let timed_event_loop target_fps render_fn game_fn renderer initial_game_value =
   let minimum_frame_length = (Int32.div 1000l (Int32.of_int target_fps)) in
@@ -39,7 +42,7 @@ let timed_event_loop target_fps render_fn game_fn renderer initial_game_value =
        i wanted to avoid the chance that this would cons *)
     let (game', quit) =
       if dt < minimum_update_length then (game, false)
-      else game_fn input' (Time.of_int32_ms dt) game
+      else game_fn input' input (Time.of_int32_ms dt) game
     in
 
     render_fn renderer game';
@@ -57,5 +60,22 @@ let timed_event_loop target_fps render_fn game_fn renderer initial_game_value =
 
 let () =
   with_sdl (fun _ renderer ->
-      timed_event_loop 60 render_fn game_fn renderer ()) ();
+      match Board.create "
+****************
+****************
+*.*****..*****.*
+*.1***....***2.*
+*...*....@.*...*
+*...3..12..3...*
+*...3..12..3...*
+*...*......*...*
+*.1***....***2.*
+*.*****..*****.*
+****************
+****************
+" with
+      | Some board ->
+        timed_event_loop 60 Board.render game_fn renderer board
+      | None ->
+        Printf.fprintf stderr "Failed to load default board.  Sorry.\n") ();
   exit 0

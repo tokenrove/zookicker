@@ -166,7 +166,7 @@ let player_wraps_around_world direction =
         let (x',y') = (locate_player it) in
         Some ((x'-x)*(x'-x) + (y'-y)*(y'-y))
       | None -> None)
-    (Some 2)
+    (Some 4)
     ("Player wraps around the world ("^(str_of_direction direction)^")")
 
 let player_takes_time_to_complete_move () =

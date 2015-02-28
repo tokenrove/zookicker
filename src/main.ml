@@ -47,7 +47,7 @@ let timed_event_loop target_fps render_fn game_fn renderer initial_game_value =
 
 let () =
   with_sdl (fun _ renderer ->
-      let levels = [0] in
+      let levels = [0; 1; 2] in
       let rec loop ls =
         match ls with
         | [] -> Printf.printf "You win.\n"

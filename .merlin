@@ -1,4 +1,5 @@
 PKG tsdl
+PKG tsdl_image
 PKG testsimple
 S src
-B _build/src
+B _build/**

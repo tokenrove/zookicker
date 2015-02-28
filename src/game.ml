@@ -2,6 +2,7 @@ type t = {
   board: Board.t;
   mutable time_remaining: Time.t;
   mutable score: int;
+  font: Font.t;
 }
 
 type outcome = Cleared | Quit | TimeOver
@@ -26,7 +27,7 @@ let update input old_input dt ({board; time_remaining} as game) =
   in
   (game, outcome)
 
-let load_level l =
+let load_level font l =
   let plan = match l with
     | 0 -> "
 ****************
@@ -74,9 +75,19 @@ let load_level l =
   in
   match Board.create plan with
   | Some board ->
-    {board; time_remaining = Time.of_float 300.0; score = 0;}
+    {board; time_remaining = Time.of_float 300.0; score = 0; font}
   | None ->
     failwith "Invalid board"
 
-let render renderer {board} =
-  Board.render renderer board
+open Tsdl
+let (>>=) = Util.(>>=)
+
+let render renderer {board; font; score; time_remaining} =
+  Sdl.set_render_draw_color renderer 0 0 0 0xff >>= fun () ->
+  Sdl.render_clear renderer >>= fun () ->
+  Board.render renderer board;
+  (* XXX should use buffers for these strings *)
+  Font.render_line renderer font (300, 400) (255,0,0) (Printf.sprintf "%08d" score);
+  let (mins, secs) = truncate (time_remaining /. 60.), (truncate time_remaining) mod 60 in
+  Font.render_line renderer font (0, 400) (255,255,0) (Printf.sprintf "%d:%02d" mins secs);
+  Sdl.render_present renderer

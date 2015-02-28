@@ -256,8 +256,6 @@ let (>>=) = Util.(>>=)
 
 let render renderer {width; height; current} =
   let tw = 32 and th = 32 in
-  ignore (Sdl.set_render_draw_color renderer 0 0 0 0xff);
-  ignore (Sdl.render_clear renderer);
   ignore (Sdl.set_render_draw_color renderer 0 0xff 0 0xff);
   ignore (Sdl.render_fill_rect renderer (Some (Sdl.Rect.create ~x:0 ~y:0 ~w:(tw*width) ~h:(th*height))));
   for j = 0 to height-1 do
@@ -292,5 +290,4 @@ let render renderer {width; height; current} =
         let (x,y) = offset_to_coords facing offset in
         ignore (Sdl.render_fill_rect renderer (Some (Sdl.Rect.create ~x:(x + tw/8) ~y:(y-th/4) ~w:(tw-tw/4) ~h:(th+th/8))));
     done
-  done;
-  ignore (Sdl.render_present renderer)
+  done

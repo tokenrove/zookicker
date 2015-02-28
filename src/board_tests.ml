@@ -176,7 +176,7 @@ let player_takes_time_to_complete_move () =
         ignore (update (Time.of_int32_ms 16l) it);
         move Right it;
         let s = dump_ascii it in
-        ignore (update (Time.of_int32_ms 1000l) it);
+        ignore (update (Time.of_float 1.) it);
         move Right it;
         ignore (update (Time.of_int32_ms 16l) it);
         let s' = dump_ascii it in

@@ -128,10 +128,12 @@ let score_points () =
   flush stdout
 
 let update_tile dt i j ({width; height; current} as board) =
-  let sink v = copysign (max (abs_float(v) -. (dt /. 750.)) 0.) v in
-  let integrate_velocity o = o -. (dt /. 350.) in
-  let tile = current.(i+j*width) in
-  match tile with
+  let player_speed = 3. in
+  let beast_speed = 4. in
+  let sink v = copysign (max (abs_float(v) -. (dt *. player_speed)) 0.) v in
+  let integrate_velocity o = o -. (dt *. beast_speed) in
+  match current.(i+j*width) with
+  | Beast {velocity=Stationary} | Solid _ | Floor -> false
   | Player {facing; offset} ->
     (* to update the player, we ease their position towards the center of the tile *)
     current.(i+j*width) <- Player {facing; offset=(sink offset)};
@@ -144,10 +146,9 @@ let update_tile dt i j ({width; height; current} as board) =
       true
     end else begin
       let (i',j') = get_adjacent_position board direction (i,j) in
-      let t' = current.(i'+j'*width) in
-      match t' with
+      match current.(i'+j'*width) with
       | Floor ->
-        current.(i'+j'*width) <- Beast {beast with offset=0.5};
+        current.(i'+j'*width) <- Beast {beast with offset=0.5 +. offset};
         current.(i+j*width) <- Floor;
         true
       | Beast {kind=other_kind} when our_kind=other_kind ->
@@ -159,7 +160,6 @@ let update_tile dt i j ({width; height; current} as board) =
         current.(i+j*width) <- Beast {beast with offset=0.; velocity=Stationary};
         true
     end
-  | Beast {velocity=Stationary} | Solid _ | Floor -> false
 
 let update dt board =
   let {width; height; current} = board in

@@ -223,20 +223,20 @@ let move facing ({player_pos=(x,y); width; current} as board) =
     travelled more than one square, both animals are removed
 *)
 let with_ball (x,y) direction ({width; current} as board) fn =
-  let (cx,cy) = get_adjacent_position board direction (x,y) in
-  let (nx,ny) = get_adjacent_position board direction (cx,cy) in
-  let tile = current.(cx+cy*width) in
-  match tile with
-  | Beast candidate ->
-    let tile = current.(nx+ny*width) in
-    begin
-      match tile with
-      | Beast neighbor ->
-        current.(nx+ny*width) <- Beast (fn neighbor)
-      | Floor | Solid _ | Player _ ->
-        current.(cx+cy*width) <- Beast (fn candidate)
-    end
+  let adjacent_to (x,y) = get_adjacent_position board direction (x,y) in
+  let (cx,cy) = adjacent_to (x,y) in
+  match current.(cx+cy*width) with
   | Floor | Solid _ | Player _ -> ()
+  | Beast candidate ->
+    let (nx,ny) = adjacent_to (cx,cy) in
+    match current.(nx+ny*width) with
+    | Floor | Solid _ | Player _ ->
+      current.(cx+cy*width) <- Beast (fn candidate)
+    | Beast neighbor ->
+      let (fx,fy) = adjacent_to (nx,ny) in
+      match current.(fx+fy*width) with
+      | Floor -> current.(nx+ny*width) <- Beast (fn neighbor)
+      | Solid _ | Player _ | Beast _ -> ()
 
 let kick ({player_pos=(x,y); width; current} as board) =
   let tile = current.(x+y*width) in

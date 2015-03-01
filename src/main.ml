@@ -34,14 +34,15 @@ let timed_event_loop target_fps render_fn game_fn renderer initial_game_value =
 
     render_fn renderer game';
 
-    let t = Sdl.get_ticks () in
-    let tick_diff = (Int32.sub t last_t) in
+    let tick_diff = (Int32.sub (Sdl.get_ticks ()) last_t) in
     if tick_diff < minimum_frame_length then begin
       Sdl.delay (Int32.sub minimum_frame_length tick_diff)
     end;
+    let t = Sdl.get_ticks () in
+    let tick_diff = (Int32.sub t last_t) in
 
     match outcome with
-    | None -> loop t (max tick_diff minimum_frame_length) game' input'
+    | None -> loop t tick_diff game' input'
     | Some v -> v
   in
   loop (Sdl.get_ticks ()) 0l initial_game_value Input.empty

@@ -53,6 +53,10 @@ let ensure_working_directory () =
   assert (Sys.is_directory "assets")
 
 let () =
+  Gc.create_alarm (fun () ->
+      Printf.fprintf stderr "GC happening; %f allocated\n" (Gc.allocated_bytes ());
+      flush stderr)
+  |> ignore;
   ensure_working_directory ();
   let fullscreen_p =
     Array.length Sys.argv > 1 && Sys.argv.(1) = "-f"

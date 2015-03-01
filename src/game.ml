@@ -2,12 +2,13 @@ type t = {
   board: Board.t;
   mutable time_remaining: Time.t;
   mutable score: int;
+  mutable pairs_kicked: int;
   font: Font.t;
 }
 
-type outcome = Cleared | Quit | TimeOver
+type outcome = Cleared of int | Quit | TimeOver
 
-let update input old_input dt ({board; time_remaining} as game) =
+let update input old_input dt ({board} as game) =
   let debounced i =
     Input.is_pressed i input &&
     not (Input.is_pressed i old_input)
@@ -18,18 +19,21 @@ let update input old_input dt ({board; time_remaining} as game) =
      Board.Up,Input.Up;
      Board.Down,Input.Down];
   if debounced Input.Kick then Board.kick board;
-  Board.update dt board |> ignore;
+  let score_pts _ =
+    game.pairs_kicked <- game.pairs_kicked + 1;
+    game.score <- game.score + (10 * game.pairs_kicked)
+  in
+  Board.update dt board score_pts |> ignore;
+  game.time_remaining <- game.time_remaining -. dt;
   let outcome =
     if Input.is_pressed Input.Quit input then Some Quit
-    else if Board.is_complete board then Some Cleared
-    else if time_remaining <= 0. then Some TimeOver
+    else if Board.is_complete board then Some (Cleared game.score)
+    else if game.time_remaining <= 0. then Some TimeOver
     else None
   in
   (game, outcome)
 
-let load_level font l =
-  let plan = match l with
-    | 0 -> "
+let levels = [| "
 ****************
 ****************
 *.*****..*****.*
@@ -42,8 +46,7 @@ let load_level font l =
 *.*****..*****.*
 ****************
 ****************
-"
-    | 1 -> "
+", 150.; "
 ****************
 ****************
 ****************
@@ -56,8 +59,7 @@ let load_level font l =
 ****************
 ****************
 ****************
-"
-    | 2 -> "
+", 150.; "
 ****************
 ****************
 *...********..@*
@@ -70,12 +72,20 @@ let load_level font l =
 *...********...*
 ****************
 ****************
-"
-    | _ -> failwith "No such level"
+", 300. |]
+
+let load_level font previous_score l =
+  let (plan, time_limit) =
+    if l >= 0 && l < (Array.length levels) then
+      levels.(l)
+    else failwith "No such level"
   in
   match Board.create plan with
-  | Some board ->
-    {board; time_remaining = Time.of_float 300.0; score = 0; font}
+  | Some board -> {board;
+                   time_remaining = Time.of_float time_limit;
+                   score = previous_score;
+                   pairs_kicked = 0;
+                   font}
   | None ->
     failwith "Invalid board"
 

@@ -81,7 +81,7 @@ exception Perpetual_motion
 
 let update_until_unchanged board =
   let max_iterations = ref 100 in
-  while update (Time.of_int32_ms 16l) board do
+  while update (Time.of_int32_ms 16l) board (fun _ -> ()) do
     decr max_iterations;
     if !max_iterations <= 0 then raise Perpetual_motion;
   done
@@ -173,12 +173,12 @@ let player_takes_time_to_complete_move () =
   is (match create "@.." with
       | Some it ->
         move Right it;
-        ignore (update (Time.of_int32_ms 16l) it);
+        ignore (update (Time.of_int32_ms 16l) it (fun _ -> ()));
         move Right it;
         let s = dump_ascii it in
-        ignore (update (Time.of_float 1.) it);
+        ignore (update (Time.of_float 1.) it (fun _ -> ()));
         move Right it;
-        ignore (update (Time.of_int32_ms 16l) it);
+        ignore (update (Time.of_int32_ms 16l) it (fun _ -> ()));
         let s' = dump_ascii it in
         Some (String.trim s, String.trim s')
       | None -> None)

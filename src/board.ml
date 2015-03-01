@@ -123,13 +123,9 @@ let get_adjacent_position {width; height;} direction (x,y) =
   let (dx,dy) = unit_delta_of_direction direction in
   (width+x+dx) mod width, (height+y+dy) mod height
 
-let score_points () =
-  Printf.printf "Unimplemented: score points\n";
-  flush stdout
-
-let update_tile dt i j ({width; height; current} as board) =
-  let player_speed = 3. in
-  let beast_speed = 4. in
+let update_tile dt i j ({width; height; current} as board) score_points =
+  let player_speed = 5. in
+  let beast_speed = 6. in
   let sink v = copysign (max (abs_float(v) -. (dt *. player_speed)) 0.) v in
   let integrate_velocity o = o -. (dt *. beast_speed) in
   match current.(i+j*width) with
@@ -154,19 +150,19 @@ let update_tile dt i j ({width; height; current} as board) =
       | Beast {kind=other_kind} when our_kind=other_kind ->
         current.(i+j*width) <- Floor;
         current.(i'+j'*width) <- Floor;
-        score_points ();
+        score_points our_kind;
         true
       | Beast _ | Solid _ | Player _ ->
         current.(i+j*width) <- Beast {beast with offset=0.; velocity=Stationary};
         true
     end
 
-let update dt board =
+let update dt board score_points =
   let {width; height; current} = board in
   let changed = ref false in
   for j = 0 to height-1 do
     for i = 0 to width-1 do
-      if update_tile dt i j board then
+      if update_tile dt i j board score_points then
         changed := true;
     done
   done;

@@ -64,13 +64,15 @@ let () =
   with_sdl fullscreen_p (fun _ renderer ->
       let levels = [0; 1; 2] in
       let font = Font.load renderer "assets/osd" in
-      let rec loop ls =
+      let rec loop ls score =
         match ls with
         | [] -> Printf.printf "You win.\n"
         | l::ls' ->
-          match timed_event_loop 60 Game.render Game.update renderer (Game.load_level font l) with
-          | Game.Cleared -> loop ls'
-          | Game.Quit | Game.TimeOver -> Printf.printf "You lose.\n"
+          let open Game in
+          match timed_event_loop 60 render update renderer
+                  (load_level font score l) with
+          | Cleared score -> loop ls' score
+          | Quit | TimeOver -> Printf.printf "You lose.\n"
       in
-      loop levels);
+      loop levels 0);
   exit 0

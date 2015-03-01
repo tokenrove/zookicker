@@ -251,7 +251,7 @@ open Tsdl
 let (>>=) = Util.(>>=)
 
 let render renderer {width; height; current} r =
-  let tw = 32 and th = 32 in
+  let tw = 64 and th = 64 in
   ignore (Sdl.set_render_draw_color renderer 0 0xff 0 0xff);
   ignore (Sdl.render_fill_rect renderer (Some (Sdl.Rect.modify r ~x:0 ~y:0 ~w:(tw*width) ~h:(th*height))));
   for j = 0 to height-1 do

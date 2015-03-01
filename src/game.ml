@@ -47,7 +47,7 @@ let levels = [| "
 *.*****..*****.*
 ****************
 ****************
-", 150.; "
+", 90.; "
 ****************
 ****************
 ****************
@@ -99,7 +99,8 @@ let render renderer {board; font; score; time_remaining; rect} =
   Sdl.render_clear renderer >>= fun () ->
   Board.render renderer board rect;
   (* XXX should use buffers for these strings *)
-  Font.render_line renderer font (300, 400) (255,0,0) (Printf.sprintf "%08d" score);
+  Font.render_line renderer font (600, 30) (255,255,255) (Printf.sprintf "%08d" score);
   let (mins, secs) = truncate (time_remaining /. 60.), (truncate time_remaining) mod 60 in
-  Font.render_line renderer font (0, 400) (255,255,0) (Printf.sprintf "%d:%02d" mins secs);
+  let color = if mins = 0 then (160,0,0) else if mins = 1 then (255,255,0) else (0,255,0) in
+  Font.render_line renderer font (30, 30) color (Printf.sprintf "%d:%02d" mins secs);
   Sdl.render_present renderer

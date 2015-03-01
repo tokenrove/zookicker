@@ -4,15 +4,20 @@ open Tsdl
 open Tsdl_image
 let (>>=) = Util.(>>=)
 
-let with_sdl f =
+let with_sdl fullscreen_p f =
   Sdl.init Sdl.Init.everything >>= fun () ->
   ignore (Image.init Image.Init.png);
-  Sdl.create_window_and_renderer ~w:640 ~h:480 Sdl.Window.windowed >>= fun (w,r) ->
-  Sdl.render_set_logical_size r 640 480 >>= fun () ->
+  let w,h = 640, 480 in
+  (if fullscreen_p then
+    Sdl.create_window_and_renderer ~w:0 ~h:0 Sdl.Window.fullscreen_desktop
+  else
+    Sdl.create_window_and_renderer ~w:w ~h:h Sdl.Window.windowed)
+  >>= fun (window, renderer) ->
+  Sdl.render_set_logical_size renderer w h >>= fun () ->
   Util.unwind ~protect:(fun () ->
-      Sdl.destroy_window w;
+      Sdl.destroy_window window;
       Image.quit ();
-      Sdl.quit ()) (fun () -> f w r) ()
+      Sdl.quit ()) (fun () -> f window renderer) ()
 
 let timed_event_loop target_fps render_fn game_fn renderer initial_game_value =
   let minimum_frame_length = (Int32.div 1000l (Int32.of_int target_fps)) in
@@ -48,7 +53,10 @@ let ensure_working_directory () =
 
 let () =
   ensure_working_directory ();
-  with_sdl (fun _ renderer ->
+  let fullscreen_p =
+    Array.length Sys.argv > 1 && Sys.argv.(1) = "-f"
+  in
+  with_sdl fullscreen_p (fun _ renderer ->
       let levels = [0; 1; 2] in
       let font = Font.load renderer "assets/osd" in
       let rec loop ls =

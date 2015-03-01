@@ -248,7 +248,6 @@ let kick ({player_pos=(x,y); width; current} as board) =
    bit, possibly by parameterizing this module by a "presenter" module.
    For now, though, we'll keep things simple and concrete. *)
 open Tsdl
-let (>>=) = Util.(>>=)
 
 let render renderer {width; height; current} r =
   let tw = 64 and th = 64 in

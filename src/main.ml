@@ -3,7 +3,7 @@ let window_title = "Zookicker"
 open Tsdl
 open Tsdl_image
 open Tsdl_mixer
-let (>>=) = Util.(>>=)
+open Util
 
 let display_width, display_height = 1024, 768
 
@@ -19,7 +19,7 @@ let with_sdl fullscreen_p f =
     Sdl.create_window_and_renderer ~w:display_width ~h:display_height Sdl.Window.windowed)
   >>= fun (window, renderer) ->
   Sdl.render_set_logical_size renderer display_width display_height >>= fun () ->
-  Util.unwind ~protect:(fun () ->
+  unwind ~protect:(fun () ->
       Sdl.destroy_window window;
       Image.quit ();
       Mixer.quit ();
@@ -52,16 +52,6 @@ let timed_event_loop target_fps render_fn game_fn renderer initial_game_value =
     | Some v -> v
   in
   loop (Sdl.get_ticks ()) 0l initial_game_value Input.empty
-
-let with_music path f =
-  match Mixer.load_mus path with
-  | None -> failwith (Printf.sprintf "Failed to load %s" path)
-  | Some music ->
-    Mixer.play_music music (-1);
-    Util.unwind ~protect:(fun music ->
-        (* XXX make sure the music isn't still playing? *)
-        Mixer.free_music music)
-      f music
 
 (* returns true if we want to play; false if we quit *)
 let title_screen renderer logo_font =
@@ -116,7 +106,7 @@ let end_credits renderer osd_font =
          Sdl.render_present renderer
        in
        let update input old_input dt () =
-         if !scroll > 180. then scroll := !scroll -. (50. *. dt);
+         if !scroll > 180. then scroll := !scroll -. (35. *. dt);
          ((),
           if Input.is_pressed Input.Quit input then Some ()
           else if Input.is_pressed Input.Kick input then Some ()

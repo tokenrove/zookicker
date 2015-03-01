@@ -2,13 +2,17 @@ let window_title = "Zookicker"
 
 open Tsdl
 open Tsdl_image
+open Tsdl_mixer
 let (>>=) = Util.(>>=)
 
 let display_width, display_height = 1024, 768
 
 let with_sdl fullscreen_p f =
   Sdl.init Sdl.Init.everything >>= fun () ->
-  ignore (Image.init Image.Init.png);
+  assert ((Image.init Image.Init.png) = Image.Init.png);
+  assert ((Mixer.init Mixer.Init.ogg) = Mixer.Init.ogg);
+  (* XXX audio should be optional *)
+  assert (0 = (Mixer.open_audio 44100 Sdl.Audio.s16 2 4096));
   (if fullscreen_p then
     Sdl.create_window_and_renderer ~w:0 ~h:0 Sdl.Window.fullscreen_desktop
   else
@@ -18,6 +22,7 @@ let with_sdl fullscreen_p f =
   Util.unwind ~protect:(fun () ->
       Sdl.destroy_window window;
       Image.quit ();
+      Mixer.quit ();
       Sdl.quit ()) (fun () -> f window renderer) ()
 
 let timed_event_loop target_fps render_fn game_fn renderer initial_game_value =
@@ -48,6 +53,16 @@ let timed_event_loop target_fps render_fn game_fn renderer initial_game_value =
   in
   loop (Sdl.get_ticks ()) 0l initial_game_value Input.empty
 
+let with_music path f =
+  match Mixer.load_mus path with
+  | None -> failwith (Printf.sprintf "Failed to load %s" path)
+  | Some music ->
+    Mixer.play_music music (-1);
+    Util.unwind ~protect:(fun music ->
+        (* XXX make sure the music isn't still playing? *)
+        Mixer.free_music music)
+      f music
+
 (* returns true if we want to play; false if we quit *)
 let title_screen renderer logo_font =
   let render renderer () =
@@ -64,6 +79,7 @@ let title_screen renderer logo_font =
      else if Input.is_pressed Input.Kick input then Some true
      else None)
   in
+  with_music "assets/title.ogg" @@ fun _ ->
   timed_event_loop 60 render update renderer ()
 
 let end_credits renderer osd_font =
@@ -106,6 +122,7 @@ let end_credits renderer osd_font =
           else if Input.is_pressed Input.Kick input then Some ()
           else None)
        in
+       with_music "assets/credits.ogg" @@ fun _ ->
        timed_event_loop 60 render update renderer ())
 
 let game_over renderer font =
@@ -121,6 +138,7 @@ let game_over renderer font =
      else if Input.is_pressed Input.Kick input then Some ()
      else None)
   in
+  with_music "assets/gameover.ogg" @@ fun _ ->
   timed_event_loop 60 render update renderer ()
 
 let rec outer_game_loop renderer osd_font levels score =
@@ -128,8 +146,10 @@ let rec outer_game_loop renderer osd_font levels score =
   | [] -> end_credits renderer osd_font
   | l::ls' ->
     let open Game in
-    match timed_event_loop 60 render update renderer
-            (load_level osd_font score l) with
+    match
+      with_level osd_font score l @@ fun level ->
+      timed_event_loop 60 render update renderer level
+    with
     | Cleared score -> outer_game_loop renderer osd_font ls' score
     | Quit | TimeOver -> game_over renderer osd_font
 

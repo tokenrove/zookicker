@@ -47,7 +47,7 @@ let levels = [| "
 *.*****..*****.*
 ****************
 ****************
-", 90.; "
+", 90., "assets/level0.ogg"; "
 ****************
 ****************
 ****************
@@ -60,7 +60,7 @@ let levels = [| "
 ****************
 ****************
 ****************
-", 150.; "
+", 150., "assets/level1.ogg"; "
 ****************
 ****************
 *...********..@*
@@ -73,21 +73,34 @@ let levels = [| "
 *...********...*
 ****************
 ****************
-", 300. |]
+", 300., "assets/level2.ogg" |]
 
-let load_level font previous_score l =
-  let (plan, time_limit) =
+open Tsdl_mixer
+let with_music path f =
+  match Mixer.load_mus path with
+  | None -> failwith (Printf.sprintf "Failed to load %s" path)
+  | Some music ->
+    Mixer.play_music music (-1);
+    Util.unwind ~protect:(fun music ->
+        (* XXX make sure the music isn't still playing? *)
+        Mixer.free_music music)
+      f music
+
+let with_level font previous_score l f =
+  let (plan, time_limit, music_path) =
     if l >= 0 && l < (Array.length levels) then
       levels.(l)
     else failwith "No such level"
   in
   match Board.create plan with
-  | Some board -> {board;
-                   time_remaining = Time.of_float time_limit;
-                   score = previous_score;
-                   pairs_kicked = 0;
-                   rect = Tsdl.Sdl.Rect.create 0 0 0 0;
-                   font}
+  | Some board ->
+    with_music music_path @@ fun _ ->
+    f {board;
+       time_remaining = Time.of_float time_limit;
+       score = previous_score;
+       pairs_kicked = 0;
+       rect = Tsdl.Sdl.Rect.create 0 0 0 0;
+       font}
   | None ->
     failwith "Invalid board"
 

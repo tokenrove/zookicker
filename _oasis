@@ -11,7 +11,7 @@ Executable "zookicker"
   Install:      true
   Path:         src
   MainIs:       main.ml
-  BuildDepends: tsdl, tsdl_image
+  BuildDepends: tsdl, tsdl_image, tsdl_mixer
   CompiledObject: best
   ByteOpt:      -w +a -warn-error A-4-29-44 -g
 

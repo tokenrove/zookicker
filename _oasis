@@ -21,7 +21,14 @@ Executable "board_tests"
   MainIs:       board_tests.ml
   BuildDepends: testsimple, tsdl
   ByteOpt:      -w -a
+  CompiledObject: best
 
 Test unit
   TestTools: prove, board_tests
   Command:   $prove -v $board_tests
+
+SourceRepository "master"
+  Type: git
+  Location: https://github.com/tokenrove/zookicker.git
+  Branch: master
+  Browser: https://github.com/tokenrove/zookicker

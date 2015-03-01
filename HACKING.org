@@ -1,0 +1,9 @@
+
+
+* On consing
+
+So, it appears there's no way to specify that foreign objects have
+dynamic extent, which is too bad (any good Lisp has this ability, for
+example).  It also means we have to do some ugly things to avoid
+consing in the game loop, like keeping spare rectangle structures
+around so we don't cons up new ones.

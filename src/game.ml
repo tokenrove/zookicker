@@ -4,6 +4,7 @@ type t = {
   mutable score: int;
   mutable pairs_kicked: int;
   font: Font.t;
+  rect: Tsdl.Sdl.rect;            (* triple yuck; see HACKING.org *)
 }
 
 type outcome = Cleared of int | Quit | TimeOver
@@ -85,6 +86,7 @@ let load_level font previous_score l =
                    time_remaining = Time.of_float time_limit;
                    score = previous_score;
                    pairs_kicked = 0;
+                   rect = Tsdl.Sdl.Rect.create 0 0 0 0;
                    font}
   | None ->
     failwith "Invalid board"
@@ -92,10 +94,10 @@ let load_level font previous_score l =
 open Tsdl
 let (>>=) = Util.(>>=)
 
-let render renderer {board; font; score; time_remaining} =
+let render renderer {board; font; score; time_remaining; rect} =
   Sdl.set_render_draw_color renderer 0 0 0 0xff >>= fun () ->
   Sdl.render_clear renderer >>= fun () ->
-  Board.render renderer board;
+  Board.render renderer board rect;
   (* XXX should use buffers for these strings *)
   Font.render_line renderer font (300, 400) (255,0,0) (Printf.sprintf "%08d" score);
   let (mins, secs) = truncate (time_remaining /. 60.), (truncate time_remaining) mod 60 in

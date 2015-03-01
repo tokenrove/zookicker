@@ -14,4 +14,4 @@ val pairs_remaining : t -> int
 val locate_player : t -> int*int
 val dump_ascii : t -> string
 
-val render : Tsdl.Sdl.renderer -> t -> unit
+val render : Tsdl.Sdl.renderer -> t -> Tsdl.Sdl.rect -> unit

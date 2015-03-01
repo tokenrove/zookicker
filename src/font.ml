@@ -19,6 +19,8 @@ type t =
   {
     texture : Sdl.texture;
     glyphs : glyph list;        (* yuck *)
+    src_rect : Sdl.rect;        (* double yuck: see HACKING.org about consing *)
+    dst_rect : Sdl.rect;
   }
 
 
@@ -45,22 +47,25 @@ let load renderer path =
       loop (input_line ic) (glyph :: glyphs)
     with End_of_file -> glyphs
   in
-  {texture; glyphs = loop (input_line ic) []}
+  {texture;
+   glyphs = loop (input_line ic) [];
+   src_rect = Sdl.Rect.create 0 0 0 0;
+   dst_rect = Sdl.Rect.create 0 0 0 0}
 
 let lookup_glyph char glyphs =
   try
     Some (List.find (fun {code} -> (Char.code char) = code) glyphs)
   with Not_found -> None
 
-let render_line renderer {texture; glyphs} (x,y) (r,g,b) string =
+let render_line renderer {texture; glyphs; src_rect; dst_rect} (x,y) (r,g,b) string =
   Sdl.set_texture_color_mod texture r g b >>= fun () ->
   let sx,sy = ref x, ref y in
   let rec f char =
     match lookup_glyph char glyphs with
     | None -> assert (char <> '?'); f '?'
     | Some {x; y; width; height; x_offset; y_offset; x_advance;} ->
-      Sdl.render_copy ~src:(Sdl.Rect.create x y width height)
-        ~dst:(Sdl.Rect.create (!sx + x_offset) (!sy + y_offset) width height)
+      Sdl.render_copy ~src:(Sdl.Rect.modify src_rect x y width height)
+        ~dst:(Sdl.Rect.modify dst_rect (!sx + x_offset) (!sy + y_offset) width height)
         renderer texture >>= fun () ->
       sx := !sx + x_advance
   in

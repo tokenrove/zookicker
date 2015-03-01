@@ -285,5 +285,13 @@ let render renderer {width; height; current} r =
         ignore (Sdl.set_render_draw_color renderer 0 0 255 255);
         let (x,y) = offset_to_coords facing offset in
         ignore (Sdl.render_fill_rect renderer (Some (Sdl.Rect.modify r ~x:(x + tw/8) ~y:(y-th/4) ~w:(tw-tw/4) ~h:(th+th/8))));
+        ignore (Sdl.set_render_draw_color renderer 255 255 0 255);
+        let (x,y) = match facing with
+          | Up -> (x+tw/2-tw/16, y-th/4)
+          | Down -> (x+tw/2-tw/16, y+th-th/4)
+          | Left -> (x+tw/8, y+th/2-th/4)
+          | Right -> (x+tw-tw/4, y+th/2-th/4)
+        in
+        ignore (Sdl.render_fill_rect renderer (Some (Sdl.Rect.modify r ~x:x ~y:y ~w:(tw/8) ~h:(th/8))))
     done
   done

@@ -17,10 +17,11 @@ type glyph =
 
 type t =
   {
-    texture : Sdl.texture;
-    glyphs : glyph list;        (* yuck *)
-    src_rect : Sdl.rect;        (* double yuck: see HACKING.org about consing *)
-    dst_rect : Sdl.rect;
+    texture: Sdl.texture;
+    glyphs: glyph list;         (* yuck *)
+    line_height: int;
+    src_rect: Sdl.rect; (* double yuck: see HACKING.org about consing *)
+    dst_rect: Sdl.rect;
   }
 
 
@@ -35,8 +36,7 @@ let load renderer path =
     | Some t -> t
   in
   let ic = open_in fnt_path in
-  (* skip the first line *)
-  Printf.printf "Loading font %s\n" (input_line ic);
+  let line_height = Scanf.sscanf (input_line ic) "%u" (fun x -> x) in
   let rec loop line glyphs =
     try
       let glyph =
@@ -47,7 +47,7 @@ let load renderer path =
       loop (input_line ic) (glyph :: glyphs)
     with End_of_file -> glyphs
   in
-  {texture;
+  {texture; line_height;
    glyphs = loop (input_line ic) [];
    src_rect = Sdl.Rect.create 0 0 0 0;
    dst_rect = Sdl.Rect.create 0 0 0 0}
@@ -71,6 +71,16 @@ let render_line renderer {texture; glyphs; src_rect; dst_rect} (x,y) (r,g,b) str
   in
   String.iter f string
 
+let text_width {glyphs} string =
+  let w = ref 0 in
+  let rec f char =
+    match lookup_glyph char glyphs with
+    | None -> assert (char <> '?'); f '?'
+    | Some {x_advance} -> w := !w + x_advance
+  in
+  String.iter f string;
+  !w
+
 let free {texture} =
   Sdl.destroy_texture texture
 
@@ -78,3 +88,5 @@ let with_font renderer path f =
   let font = load renderer path in
   Util.unwind f font
     ~protect:(fun font -> free font)
+
+let line_height {line_height} = line_height

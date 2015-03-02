@@ -239,8 +239,8 @@ let kick ({player_pos=(x,y); width; current} as board) =
   match tile with
   | Player ({facing} as player) ->
     if is_player_ready_to_move player then
-      with_ball (x,y) facing board
-        (fun beast -> {beast with velocity = Moving facing})
+      with_ball (x,y) facing board @@ fun beast ->
+      {beast with velocity = Moving facing}
   | _ -> failwith "I was told there would be a player at this position"
 
 

@@ -73,8 +73,7 @@ let title_screen renderer logo_font =
   timed_event_loop 60 render update renderer ()
 
 let end_credits renderer osd_font =
-  Font.with_font renderer "assets/credits"
-    (fun font ->
+  Font.with_font renderer "assets/credits" @@ fun font ->
        let scroll = ref 1500. in
        let credits = List.rev
            ["ZooKicker";
@@ -113,7 +112,7 @@ let end_credits renderer osd_font =
           else None)
        in
        with_music "assets/credits.ogg" @@ fun _ ->
-       timed_event_loop 60 render update renderer ())
+       timed_event_loop 60 render update renderer ()
 
 let game_over renderer font =
   let render renderer () =
@@ -157,11 +156,11 @@ let () =
   let fullscreen_p =
     Array.length Sys.argv > 1 && Sys.argv.(1) = "-f"
   in
-  with_sdl fullscreen_p (fun _ renderer ->
+  with_sdl fullscreen_p @@ fun _ renderer ->
       let levels = [0; 1; 2] in
       let osd_font = Font.load renderer "assets/osd" in
       let logo_font = Font.load renderer "assets/logofont" in
       while title_screen renderer logo_font do
         outer_game_loop renderer osd_font levels 0
-      done);
+      done;
   exit 0

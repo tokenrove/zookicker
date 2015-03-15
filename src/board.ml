@@ -252,7 +252,7 @@ open Tsdl
 let render renderer {width; height; current} r =
   let tw = 64 and th = 64 in
   ignore (Sdl.set_render_draw_color renderer 0 0xff 0 0xff);
-  ignore (Sdl.render_fill_rect renderer (Some (Sdl.Rect.modify r ~x:0 ~y:0 ~w:(tw*width) ~h:(th*height))));
+  ignore (Sdl.render_fill_rect renderer (Some (Util.modify_rect r 0 0 (tw*width) (th*height))));
   for j = 0 to height-1 do
     for i = 0 to width-1 do
       let offset_to_coords direction offset =
@@ -268,22 +268,21 @@ let render renderer {width; height; current} r =
       | Floor -> ()
       | Solid _ ->
         ignore (Sdl.set_render_draw_color renderer 0xff 0 0 0xff);
-        ignore (Sdl.render_fill_rect renderer (Some (Sdl.Rect.modify r ~x:(i*tw) ~y:(j*th) ~w:tw ~h:th)))
+        ignore (Sdl.render_fill_rect renderer (Some (Util.modify_rect r (i*tw) (j*th) tw th)))
       | Beast {kind; offset; velocity} ->
         ignore (Sdl.set_render_draw_color renderer 0 255 0 255);
-        ignore (Sdl.render_fill_rect renderer (Some (Sdl.Rect.modify r ~x:(i*tw) ~y:(j*th) ~w:tw ~h:th)));
+        ignore (Sdl.render_fill_rect renderer (Some (Util.modify_rect r (i*tw) (j*th) tw th)));
         let v = kind * 25 in
         ignore (Sdl.set_render_draw_color renderer v v v 255);
         let (x,y) = offset_to_coords (match velocity with | Stationary -> Down | Moving d -> d) offset in
-        ignore (Sdl.render_fill_rect renderer (Some (Sdl.Rect.modify r ~x:(x + tw/8) ~y:(y + th/8) ~w:(tw-tw/4) ~h:(th-th/4))));
-        (* ignore (Sdl.render_fill_rect renderer (Some (Sdl.Rect.create ~x:(i*tw + tw/8) ~y:(j*th + th/8) ~w:(tw-tw/4) ~h:(th-th/4)))); *)
+        ignore (Sdl.render_fill_rect renderer (Some (Util.modify_rect r (x + tw/8) (y + th/8) (tw-tw/4) (th-th/4))));
 
       | Player {facing; offset} ->
         ignore (Sdl.set_render_draw_color renderer 0 255 0 255);
-        ignore (Sdl.render_fill_rect renderer (Some (Sdl.Rect.modify r ~x:(i*tw) ~y:(j*th) ~w:tw ~h:th)));
+        ignore (Sdl.render_fill_rect renderer (Some (Util.modify_rect r (i*tw) (j*th) tw th)));
         ignore (Sdl.set_render_draw_color renderer 0 0 255 255);
         let (x,y) = offset_to_coords facing offset in
-        ignore (Sdl.render_fill_rect renderer (Some (Sdl.Rect.modify r ~x:(x + tw/8) ~y:(y-th/4) ~w:(tw-tw/4) ~h:(th+th/8))));
+        ignore (Sdl.render_fill_rect renderer (Some (Util.modify_rect r (x + tw/8) (y-th/4) (tw-tw/4) (th+th/8))));
         ignore (Sdl.set_render_draw_color renderer 255 255 0 255);
         let (x,y) = match facing with
           | Up -> (x+tw/2-tw/16, y-th/4)
@@ -291,6 +290,6 @@ let render renderer {width; height; current} r =
           | Left -> (x+tw/8, y+th/2-th/4)
           | Right -> (x+tw-tw/4, y+th/2-th/4)
         in
-        ignore (Sdl.render_fill_rect renderer (Some (Sdl.Rect.modify r ~x:x ~y:y ~w:(tw/8) ~h:(th/8))))
+        ignore (Sdl.render_fill_rect renderer (Some (Util.modify_rect r x y (tw/8) (th/8))))
     done
   done

@@ -18,3 +18,10 @@ let with_music path f =
         Mixer.halt_music () |> ignore;
         Mixer.free_music music)
       f music
+
+let modify_rect r x y w h =
+  Sdl.Rect.set_x r x;
+  Sdl.Rect.set_y r y;
+  Sdl.Rect.set_w r w;
+  Sdl.Rect.set_h r h;
+  r

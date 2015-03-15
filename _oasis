@@ -19,7 +19,7 @@ Executable "board_tests"
   Install:      false
   Path:         src
   MainIs:       board_tests.ml
-  BuildDepends: testsimple, tsdl
+  BuildDepends: testsimple, tsdl, tsdl_mixer
   ByteOpt:      -w -a
   CompiledObject: best
 

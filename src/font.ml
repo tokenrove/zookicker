@@ -64,8 +64,8 @@ let render_line renderer {texture; glyphs; src_rect; dst_rect} (x,y) (r,g,b) str
     match lookup_glyph char glyphs with
     | None -> assert (char <> '?'); f '?'
     | Some {x; y; width; height; x_offset; y_offset; x_advance;} ->
-      Sdl.render_copy ~src:(Sdl.Rect.modify src_rect x y width height)
-        ~dst:(Sdl.Rect.modify dst_rect (!sx + x_offset) (!sy + y_offset) width height)
+      Sdl.render_copy ~src:(Util.modify_rect src_rect x y width height)
+        ~dst:(Util.modify_rect dst_rect (!sx + x_offset) (!sy + y_offset) width height)
         renderer texture >>= fun () ->
       sx := !sx + x_advance
   in

@@ -30,11 +30,7 @@ let load renderer path =
   let fnt_path = (path ^ ".fnt") in
   if not Sys.(file_exists png_path && file_exists fnt_path) then
     failwith (Printf.sprintf "Couldn't find one of %s or %s" png_path fnt_path);
-  let texture =
-    match Image.load_texture renderer png_path with
-    | None -> failwith (Printf.sprintf "Unable to load font texture %s" png_path)
-    | Some t -> t
-  in
+  Image.load_texture renderer png_path >>= fun texture ->
   let ic = open_in fnt_path in
   let line_height = Scanf.sscanf (input_line ic) "%u" (fun x -> x) in
   let rec loop line glyphs =

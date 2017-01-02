@@ -10,9 +10,9 @@ let display_width, display_height = 1024, 768
 let with_sdl fullscreen_p f =
   Sdl.init Sdl.Init.everything >>= fun () ->
   assert ((Image.init Image.Init.png) = Image.Init.png);
-  assert ((Mixer.init Mixer.Init.ogg) = Mixer.Init.ogg);
+  assert ((Mixer.init Mixer.Init.ogg) = Ok Mixer.Init.ogg);
   (* XXX audio should be optional *)
-  assert (0 = (Mixer.open_audio 44100 Sdl.Audio.s16 2 4096));
+  Mixer.open_audio 44100 Sdl.Audio.s16 2 4096 >>= fun () ->
   (if fullscreen_p then
     Sdl.create_window_and_renderer ~w:0 ~h:0 Sdl.Window.fullscreen_desktop
   else

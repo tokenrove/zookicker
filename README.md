@@ -9,9 +9,7 @@ under either SIL or the Ubuntu font license.
 ## Building for install
 
 ```
-opam pin add tsdl git://github.com/tokenrove/tsdl.git
-opam pin add tsdl-image git://github.com/tokenrove/tsdl-image.git
-opam pin add tsdl-mixer git://github.com/tokenrove/tsdl-mixer.git
+opam install tsdl tsdl-image tsdl-mixer
 oasis setup
 ocaml setup.ml -all
 ocaml setup.ml -install

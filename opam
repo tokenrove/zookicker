@@ -1,0 +1,28 @@
+opam-version: "1.2"
+name: "zookicker"
+version: "0.0"
+available: [ocaml-version >= "4.02"]
+maintainer: "Julian Squires <julian@cipht.net>"
+authors: ["Julian Squires <julian@cipht.net>"]
+homepage: "http://github.com/tokenrove/zookicker"
+dev-repo: "https://github.com/tokenrove/zookicker.git"
+bug-reports: "http://github.com/tokenrove/zookicker/issues"
+license: "GPL3"
+depends: [ "tsdl"
+           "tsdl-image" {>= "0.2"}
+           "tsdl-mixer" {>= "0.2"}
+           "oasis" {build}
+           "testsimple" {build}]
+build:
+[
+  [ "oasis" "setup" ]
+  [ "ocaml" "setup.ml" "-configure" "--prefix=%{prefix}" ]
+  [ "ocaml" "setup.ml" "-build" ]
+]
+build-test:
+[
+  [ "ocaml" "setup.ml" "-configure" "--enable-tests" ]
+  [ "ocaml" "setup.ml" "-test" ]
+]
+install: [[ "ocaml" "setup.ml" "-install" ]]
+remove: [["ocamlfind" "remove" "zookicker"]]

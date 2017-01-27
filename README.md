@@ -9,10 +9,7 @@ under either SIL or the Ubuntu font license.
 ## Building for install
 
 ```
-opam install tsdl tsdl-image tsdl-mixer
-oasis setup
-ocaml setup.ml -all
-ocaml setup.ml -install
+opam pin add zookicker .
 ```
 
 ## Developing
